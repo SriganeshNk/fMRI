@@ -1,0 +1,12 @@
+Active 1500 voxels
+AVerage Accuracies:
+C= 5000,SVM: 0.6771
+GNB: 0.5983
+k = 17, SVM: 0.6947
+
+AvgROI
+AVerage Accuracies:
+C=500, SVM: 0.5524
+GNB: 0.5472
+k=3, KNN: 0.548
+

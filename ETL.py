@@ -1,13 +1,20 @@
 __author__ = 'Sriganesh'
 
 import scipy.io
+import math
 from sklearn import svm
 import numpy as np
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from matplotlib import pyplot as plt
+import operator
+from scipy.sparse import csr_matrix
+from scipy.sparse.csgraph import minimum_spanning_tree
+import networkx as nx
 import random
-
+from scipy.stats import norm
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_recall_fscore_support
 
 def loadData(filename):
     data = scipy.io.loadmat(filename)
@@ -47,28 +54,113 @@ def getLabels(info):
         i += 1
     return labels, indexes
 
-def cross_validate(traindata, trainlabels):
+def getClassConditionalData(data):
+    dataP, dataS = [], []
+    for i in range(len(data)):
+        if labels[i] == 'P':
+            dataP.append([data[i][j] for j in range(len(data[i]))])
+        if labels[i] == 'S':
+            dataS.append([data[i][j] for j in range(len(data[i]))])
+    dataP = np.transpose(dataP)
+    dataS = np.transpose(dataS)
+    return dataP, dataS
+
+def getClassProbability(labels):
+    s, p = 0, 0
+    for x in labels:
+        if x == 'S':
+            s += 1
+        if x == 'P':
+            p += 1
+    Pp = float(p)/float(len(labels))
+    Ps = float(s)/float(len(labels))
+    return Pp, Ps
+
+
+def maximum_spanning_tree(G):
+    Edges = [(u,v,d['weight']) for (u,v,d) in G.edges(data=True)]
+    Edges.sort(key=lambda x:x[2],reverse=True)
+    MaxG = nx.DiGraph()
+    for x in Edges:
+        MaxG.add_edge(x[0],x[1])
+        if not nx.is_directed_acyclic_graph(MaxG):
+            MaxG.remove_edge(x[0],x[1])
+    #print [(u,v) for (u,v,w) in Edges]
+    #print [(u,v) for (u,v) in MaxG.edges()]
+    return MaxG
+
+
+def learnStructure(dataP, dataS, Pp, Ps, R = 0.005):
+    adjMatrix = [[50 for i in range(len(dataP)+1)]]
+    tempMatrix = [[0 for i in range(len(dataP))] for j in range(len(dataP))]
+    for i in range(len(dataP)):
+        L = [1 for j in range(len(dataP)+1)]
+        adjMatrix.append(L)
+    for i in range(len(dataP)):
+        for j in range(i+1, len(dataP)):
+            try:
+                if i != j:
+                    temp = Pp * math.log(math.e, 1-((np.corrcoef(dataP[i], dataP[j])[0][1])**2))
+                    temp += Ps * math.log(math.e, 1-((np.corrcoef(dataS[i], dataS[j])[0][1])**2))
+                    temp *= (-1/2)
+                    tempMatrix[i][j] = temp
+                    tempMatrix[j][i] = temp
+            except ValueError:
+                print "DATA1:", dataP[i]
+                print "DATA2:", dataP[j]
+                print "Correlation coefficient:", np.linalg.det(np.corrcoef(dataP[i], dataP[j]))
+    #tempMatrix = minimum_spanning_tree(csr_matrix(tempMatrix)).toarray().astype(float)
+    for i in range(len(adjMatrix)):
+        for j in range(len(adjMatrix)):
+            if i == j:
+                adjMatrix[i][j] = 0
+            if j == 0 and adjMatrix[i][j] > 0:
+                adjMatrix[i][j] = 0
+            if i > 0 and j > 0:
+                if tempMatrix[i-1][j-1] == 0:
+                    adjMatrix[i][j] = 0
+                else:
+                    adjMatrix[i][j] = tempMatrix[i-1][j-1]
+    G = nx.DiGraph(np.asmatrix(adjMatrix))
+    G = maximum_spanning_tree(G)
+    return G
+
+def getParam(data):
+    Params = []
+    for x in data:
+        Mu = np.mean(x)
+        Sigma = np.var(x)
+        Params.append((Mu, Sigma))
+    return Params
+
+def CVsplit(traindata, trainlabels, i=5):
     n = 16
     limit = len(traindata)/n
+    start = i * limit
+    end = (i+1) * limit
+    if start == 0:
+        train = traindata[end:]
+        tlabel = trainlabels[end:]
+    if end == len(traindata):
+        train = traindata[:start]
+        tlabel = trainlabels[:start]
+    if start != 0 and end != len(traindata):
+        train = traindata[:start]
+        train.extend(traindata[end:])
+        tlabel = trainlabels[:start]
+        tlabel.extend(trainlabels[end:])
+    test = traindata[start:end]
+    label = trainlabels[start:end]
+    return train,tlabel,test,label
+
+
+def cross_validate(traindata, trainlabels):
+    n = 16
     i = 0
     k_val = [1, 3, 7, 9, 15]
     linearSVM, Gauss, knn = [],[],[]
     while i < n:
-        start = i * limit
-        end = (i+1) * limit
-        if start == 0:
-            train = traindata[end:]
-            tlabel = trainlabels[end:]
-        if end == len(traindata):
-            train = traindata[:start]
-            tlabel = trainlabels[:start]
-        if start != 0 and end != len(traindata):
-            train = traindata[:start]
-            train.extend(traindata[end:])
-            tlabel = trainlabels[:start]
-            tlabel.extend(trainlabels[end:])
-        test = data[start:end]
-        label = trainlabels[start:end]
+        train, tlabel, test, label = CVsplit(traindata,trainlabels, i)
         L = []
         clf = svm.SVC(C=5000, kernel='linear')
         L.append(fitAndPredict(clf,train,tlabel,test,label))
@@ -88,13 +180,13 @@ def cross_validate(traindata, trainlabels):
     X = np.asarray(knn)
     line3, leg3 = [line1, line2], ["SVM with C=5000","Gaussian"]
     for i in range(len(knn[0])):
-        line, = plt.plot(X[:,i], label= str(k_val[i])+"nn")
+        line, = plt.plot(X[:,i], label = str(k_val[i])+"nn")
         line3.append(line)
         leg3.append(str(k_val[i])+"nn")
     plt.legend(line3,leg3)
     plt.show()
 
-def fitAndPredict(clf, traindata, trainlabels, testdata,testlabels):
+def fitAndPredict(clf, traindata, trainlabels, testdata, testlabels):
     clf.fit(traindata, trainlabels)
     i , correct = 0, 0
     for x in testdata:
@@ -104,34 +196,135 @@ def fitAndPredict(clf, traindata, trainlabels, testdata,testlabels):
     return float(correct)/float(len(testlabels))
 
 def shuffle(data, labels):
-    k = len(data) - 144
-    print k
+    start = len(data) - (6*len(data)/10)
+    end = len(data) - (5*len(data)/10)
+    #print k
     x = [i for i in range(len(data))]
-    print len(x)
+    #print len(x)
     random.shuffle(x)
-    traindata = [data[i] for i in x[:k]]
-    trainlabels = [labels[i] for i in x[:k]]
-    testdata = [data[i] for i in x[k:]]
-    testlabels = [labels[i] for i in x[k:]]
+    traindata = [data[i] for i in x[:start]]
+    traindata.extend([data[i] for i in x[end:]])
+    trainlabels = [labels[i] for i in x[:start]]
+    trainlabels.extend([labels[i] for i in x[end:]])
+    testdata = [data[i] for i in x[start:end]]
+    testlabels = [labels[i] for i in x[start:end]]
     return (traindata,trainlabels,testdata,testlabels)
 
 def trainAndtest(traindata, trainlabels, testdata, testlabels):
-    linearSVM, Gaussian, knn = [], [], []
+    linearSVM, Gaussian, knn = 0.0, 0.0, 0.0
     clf = svm.SVC(C=5000,kernel="linear")
-    linearSVM.append(fitAndPredict(clf, traindata, trainlabels,testdata, testlabels))
+    linearSVM = fitAndPredict(clf, traindata, trainlabels,testdata, testlabels)
     Gauss = GaussianNB()
-    Gaussian.append(fitAndPredict(Gauss, traindata, trainlabels,testdata, testlabels))
+    Gaussian = fitAndPredict(Gauss, traindata, trainlabels,testdata, testlabels)
     neigh = KNeighborsClassifier(n_neighbors=7)
-    knn.append(fitAndPredict(neigh, traindata, trainlabels,testdata, testlabels))
+    knn = fitAndPredict(neigh, traindata, trainlabels,testdata, testlabels)
     print "Test accuracies:"
-    print "SVM:", sum(linearSVM)/float(len(linearSVM))
-    print "GNB:", sum(Gaussian)/float(len(Gaussian))
-    print "KNN:", sum(knn)/float(len(knn))
+    print "SVM:", linearSVM
+    print "GNB:", Gaussian
+    print "KNN:", knn
+
+
+def infer(Tree, data, testdata):
+    Param = getParam(data)
+    Prod = 1
+    # Do topological sort to figure out nodes with least dependence
+    Nodes = nx.topological_sort(Tree)
+    for i in range(1,len(Nodes)):
+        mean, dummy = Param[i-1]
+        Sum = 0
+        L = []
+        for x in Tree.predecessors(Nodes[i]):
+            if x != 0 and x-1 != i-1:
+                Parentmean, ParentVar = Param[x-1]
+                PCov = np.cov([data[i-1], data[x-1]])[0][1]
+                PBeta = PCov/ParentVar
+                Sum += PBeta * (testdata[x-1] - Parentmean)
+                L.append(x-1)
+        mean += Sum
+        Var = dummy
+        if len(L) > 0:
+            Parent = [data[i-1]]
+            for k in L:
+                Parent.append(data[k])
+            if len(Parent) > 2:
+                Var = np.linalg.det(np.cov(Parent)) / np.linalg.det(np.cov(Parent[1:]))
+            else:
+                Var = np.cov(Parent)[0][1] / Param[L[0]][1]
+        Prod *= norm.pdf(testdata[i-1], loc=mean, scale=Var)
+    return Prod
+
+def cv_TAN(traindata, trainlabels, R=0.005):
+    n = 16
+    i = 0
+    Accuracy = []
+    while i < n:
+        train, tlabel, test, label = CVsplit(traindata, trainlabels, i)
+        dataP, dataS = getClassConditionalData(train)
+        Pp, Ps = getClassProbability(tlabel)
+        Tree = learnStructure(dataP,dataS,Pp,Ps,R)
+        j = 0
+        mylabel = []
+        correct = 0
+        for x in test:
+            PProd = Pp * infer(Tree, dataP, x)
+            SProd = Ps * infer(Tree, dataS, x)
+            if SProd >= PProd and label[j] == 'S':
+                correct += 1
+                mylabel.append('S')
+            else:
+                if label[j] == 'P':
+                    correct += 1
+                mylabel.append('P')
+            j +=1
+        Accuracy.append(accuracy_score(label, mylabel))
+        #print "Accuracy:", float(correct)/float(len(label))
+        #print "Accuracy:", accuracy_score(label, mylabel)
+        #print "(Precision, Recall, F1-Score)", precision_recall_fscore_support(label, mylabel)
+        i += 1
+    return sum(Accuracy)/len(Accuracy)
+
 
 if __name__ == "__main__":
     data, labels = loadData("selectROI.mat")
-    traindata,trainlabels,testdata,testlabels = shuffle(data, labels)
+    TANAcc, GaussAcc = [], []
+    for y in range(1):
+        traindata, trainlabels, testdata, testlabels = CVsplit(data, labels)
+        """R = [0.05, 0.001, 0.09, 0.0008]
+        r = 0.0
+        Accuracy = []
+        acc = 0
+        for x in R:"""
+        #temp = cv_TAN(traindata,trainlabels)
+        #print "CV", temp
+        """Accuracy.append(temp)
+        if temp > acc:
+        acc = temp
+        r = x
+        print Accuracy
+        plt.plot(Accuracy)
+        plt.show()"""
+        dataP, dataS = getClassConditionalData(traindata)
+        learnVariableDependence(dataP)
+        learnVariableDependence(dataS)
+        """Pp, Ps = getClassProbability(trainlabels)
+        Tree = learnStructure(dataP, dataS, Pp, Ps)
+        mylabel = []
+        for x in testdata:
+            PProd = Pp * infer(Tree, dataP, x)
+            SProd = Ps * infer(Tree, dataS, x)
+            if SProd >= PProd:
+                mylabel.append('S')
+            else:
+                mylabel.append('P')
+        TANAcc.append(accuracy_score(testlabels,mylabel))
+        #print "Accuracy:", accuracy_score(testlabels, mylabel)
+        #print "(Precision, Recall, F1-Score)", precision_recall_fscore_support(testlabels,mylabel)
+        Gauss = GaussianNB()
+        #print "Gaussian:", fitAndPredict(Gauss, traindata, trainlabels,testdata, testlabels)
+        GaussAcc.append(fitAndPredict(Gauss, traindata, trainlabels, testdata, testlabels))
+    print "TAN:", sum(TANAcc)/len(TANAcc)
+    print "GAUSS:", sum(GaussAcc)/len(GaussAcc)
     #cross_validate(traindata,trainlabels)
     #clf, Gauss, neigh = cross_validate(traindata,trainlabels)
-    trainAndtest(traindata, trainlabels, testdata,testlabels)
+    #trainAndtest(traindata, trainlabels, testdata,testlabels)"""
 

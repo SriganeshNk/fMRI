@@ -216,7 +216,7 @@ def infer(Tree, data, testdata):
     Param = getParam(data)
     # Do topological sort to figure out nodes with least number of dependence
     Nodes = nx.topological_sort(Tree)
-    Prod = 10.0**300
+    Prod = 10.0**400
     for i in Nodes:
         mean, Var = Param[i]
         Sum = 0

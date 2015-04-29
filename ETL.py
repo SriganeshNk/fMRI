@@ -216,7 +216,7 @@ def infer(Tree, data, testdata):
     Param = getParam(data)
     # Do topological sort to figure out nodes with least number of dependence
     Nodes = nx.topological_sort(Tree)
-    Prod = 10.0**400
+    Prod = 10.0**len(Nodes)
     for i in Nodes:
         mean, Var = Param[i]
         Sum = 0
@@ -284,9 +284,9 @@ def cv_TAN(traindata, trainlabels, R=0.005):
 
 
 if __name__ == "__main__":
-    data, labels = loadData("active500.mat")
+    data, labels = loadData("avgROI.mat")
     TANAcc, GaussAcc = [], []
-    for y in range(1):
+    for y in range(20):
         traindata, trainlabels, testdata, testlabels = shuffle(data, labels)#CVsplit(data, labels)
         #temp = cv_TAN(traindata,trainlabels)
         #print "CV", temp

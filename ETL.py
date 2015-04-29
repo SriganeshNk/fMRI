@@ -175,13 +175,13 @@ def CVsplit(traindata, trainlabels, i=5):
 
 def maximum_spanning_tree(G, TAN = False):
     Edges = [(u,v,d['weight']) for (u,v,d) in G.edges(data=True)]
-    Edges.sort(key=lambda x:x[2])
+    Edges.sort(key=lambda x:x[2], reverse=True)
     MaxG = nx.DiGraph()
     for x in Edges:
-        MaxG.add_edges(x[0],x[1])
-        if not TAN and not nx.is_directed_acyclic_graph(G):
+        MaxG.add_edge(x[0], x[1])
+        if not TAN and not nx.is_directed_acyclic_graph(MaxG):
             MaxG.remove_edge(x[0],x[1])
-        if TAN and not nx.is_tree(G):
+        if TAN and nx.number_of_nodes(MaxG) != nx.number_of_edges(MaxG) + 1:
             MaxG.remove_edge(x[0],x[1])
     print [(u,v) for (u,v,w) in Edges]
     print [(u,v) for (u,v) in MaxG.edges()]

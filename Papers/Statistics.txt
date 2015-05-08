@@ -1,0 +1,160 @@
+AvgROI Voxels
+-------------
+Average Accuracy Score for: linearSVM C = 0.0000001 is: 0.535590277778
+Average Accuracy Score for: linearSVM C = 0.0005 is: 0.544270833333
+Average Accuracy Score for: linearSVM C = 0.01 is: 0.546006944444
+Average Accuracy Score for: linearSVM C = 2 is: 0.5390625
+Average Accuracy Score for: 1nn is: 0.534722222222
+Average Accuracy Score for: 3nn is: 0.547743055556
+Average Accuracy Score for TAN: 0.5390625
+Test accuracies:
+SVM Scores:
+0.6015625
+GNB: Scores
+0.5703125
+Nearest Neighbour Scores
+0.5
+TANAccuracy: 0.609375
+
+AvgROI [TAN-KDTAN]
+------
+Average Accuracy Score for TAN: 0.556423611111
+Average Accuracy Score for KDTAN: 0.561631944444
+Average Accuracy Score for TAN: 0.556423611111
+Average Accuracy Score for KDTAN: 0.561631944444
+Test Accuracy:
+TAN Accuracy: 0.5390625
+KDTAN Accuracy: 0.578125
+
+
+Active 100 Voxels
+-----------------
+Average Accuracy Score for: linearSVM C = 0.0000001 is: 0.658854166667
+Average Accuracy Score for: linearSVM C = 0.0005 is: 0.730034722222
+Average Accuracy Score for: linearSVM C = 0.01 is: 0.722222222222
+Average Accuracy Score for: linearSVM C = 2 is: 0.644965277778
+Average Accuracy Score for: 1nn is: 0.764756944444
+Average Accuracy Score for: 3nn is: 0.784722222222
+Average Accuracy Score for: 7nn is: 0.815972222222
+Average Accuracy Score for: 9nn is: 0.8203125
+Average Accuracy Score for: 15nn is: 0.814236111111
+Average Accuracy Score for TAN: 0.747395833333
+Test accuracies:
+SVM Scores:
+0.6796875
+GNB: Scores
+0.703125
+Nearest Neighbour Scores
+0.75
+TANAccuracy: 0.7578125
+
+Active 100 TAN- KDTAN
+---------------------
+Average Accuracy Score for: linearSVM C = 0.0000001 is: 0.683159722222
+Average Accuracy Score for: linearSVM C = 0.0005 is: 0.712673611111
+Average Accuracy Score for: linearSVM C = 0.01 is: 0.710069444444
+Average Accuracy Score for: linearSVM C = 2 is: 0.641493055556
+Average Accuracy Score for: 1nn is: 0.748263888889
+Average Accuracy Score for: 3nn is: 0.780381944444
+Average Accuracy Score for: 7nn is: 0.802951388889
+Average Accuracy Score for: 9nn is: 0.809895833333
+Average Accuracy Score for: 15nn is: 0.821180555556
+Average Accuracy Score for TAN: 0.738715277778
+Average Accuracy Score for KDTAN: 0.645833333333
+Test accuracies:
+SVM Scores:
+0.7578125
+GNB: Scores
+0.65625
+Nearest Neighbour Scores
+0.8046875
+TAN Accuracy: 0.75
+KDTAN Accuracy: 0.6328125
+
+
+Active 200 Voxels
+-----------------
+Average Accuracy Score for: linearSVM C = 0.0000001 is: 0.701388888889
+Average Accuracy Score for: linearSVM C = 0.0005 is: 0.828125
+Average Accuracy Score for: linearSVM C = 0.01 is: 0.801215277778
+Average Accuracy Score for: linearSVM C = 2 is: 0.763888888889
+Average Accuracy Score for: 1nn is: 0.969618055556
+Average Accuracy Score for: 3nn is: 0.955729166667
+Average Accuracy Score for: 7nn is: 0.9375
+Average Accuracy Score for: 9nn is: 0.930555555556
+Average Accuracy Score for: 15nn is: 0.912326388889
+Average Accuracy Score for: TAN is: 0.822048611111
+Test accuracies:
+SVM Scores:
+0.8359375
+GNB: Scores
+0.796875
+Nearest Neighbour: Scores
+0.9609375
+TAN Accuracy: 0.8046875
+
+
+Active 300 Voxels:
+------------------
+Average Accuracy Score for: linearSVM C = 0.0000001 is: 0.717013888889
+Average Accuracy Score for: linearSVM C = 0.0005 is: 0.823784722222
+Average Accuracy Score for: linearSVM C = 0.01 is: 0.792534722222
+Average Accuracy Score for: linearSVM C = 2 is: 0.740451388889
+Average Accuracy Score for: 1nn is: 0.964409722222
+Average Accuracy Score for: 3nn is: 0.9609375
+Average Accuracy Score for: 7nn is: 0.934027777778
+Average Accuracy Score for: 9nn is: 0.925347222222
+Average Accuracy Score for: 15nn is: 0.917534722222
+Average Accuracy Score for TAN: 0.84375
+Test accuracies:
+SVM Scores:
+0.828125
+GNB: Scores
+0.8203125
+Nearest Neighbour Scores
+0.984375
+TANAccuracy: 0.8203125
+
+
+Active 400 Voxels:
+------------------
+Average Accuracy Score for: linearSVM C = 0.0000001 is: 0.738715277778
+Average Accuracy Score for: linearSVM C = 0.0005 is: 0.831597222222
+Average Accuracy Score for: linearSVM C = 0.01 is: 0.803819444444
+Average Accuracy Score for: linearSVM C = 2 is: 0.768229166667
+Average Accuracy Score for: 1nn is: 0.967013888889
+Average Accuracy Score for: 3nn is: 0.963541666667
+Average Accuracy Score for: 7nn is: 0.934895833333
+Average Accuracy Score for: 9nn is: 0.928819444444
+Average Accuracy Score for: 15nn is: 0.905381944444
+Average Accuracy Score for TAN: 0.837673611111
+Test accuracies:
+SVM Scores:
+0.8125
+GNB: Scores
+0.796875
+Nearest Neighbour Scores
+0.984375
+TANAccuracy: 0.8828125
+
+Active 500 Voxels
+-----------------
+Average Accuracy Score for: linearSVM C = 0.0000001 is: 0.71875
+Average Accuracy Score for: linearSVM C = 0.0005 is: 0.912326388889
+Average Accuracy Score for: linearSVM C = 0.01 is: 0.887152777778
+Average Accuracy Score for: linearSVM C = 2 is: 0.884548611111
+Average Accuracy Score for: 1nn is: 0.96875
+Average Accuracy Score for: 3nn is: 0.961805555556
+Average Accuracy Score for: 7nn is: 0.947916666667
+Average Accuracy Score for: 9nn is: 0.936631944444
+Average Accuracy Score for: 15nn is: 0.922743055556
+Average Accuracy Score for TAN: 0.881076388889
+Test accuracies:
+SVM Scores:
+0.90625
+GNB: Scores
+0.828125
+Nearest Neighbour Scores
+0.9453125
+TANAccuracy: 0.859375
+

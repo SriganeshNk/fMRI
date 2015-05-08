@@ -3,6 +3,7 @@ __author__ = 'Sriganesh'
 import scipy.io
 import math
 from sklearn import svm
+from sklearn.svm import LinearSVC
 import numpy as np
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
@@ -31,6 +32,7 @@ def loadData(filename):
         k += 1
     return trials, labels
 
+
 def getLabels(info):
     labels = []
     indexes = []
@@ -53,19 +55,22 @@ def getLabels(info):
         i += 1
     return labels, indexes
 
+
 def cross_validate(traindata, trainlabels):
     n = 16
     i = 0
+    C_val = [0.0000001, 0.0005, 0.01, 2]
+    C_label = ["linearSVM C = 0.0000001","linearSVM C = 0.0005","linearSVM C = 0.01","linearSVM C = 2" ]
     k_val = [1, 3, 7, 9, 15]
-    linearSVM, Gauss, knn = [],[],[]
+    k_label = ["1nn", "3nn", "7nn", "9nn", "15nn"]
+    linearSVM, knn = [],[]
     while i < n:
         train, tlabel, test, label = CVsplit(traindata,trainlabels, i)
         L = []
-        clf = svm.SVC(C=5000, kernel='linear')
-        L.append(fitAndPredict(clf,train,tlabel,test,label))
+        for k in C_val:
+            clf = svm.LinearSVC(C=k)
+            L.append(fitAndPredict(clf,train,tlabel,test,label))
         linearSVM.append(L)
-        clf = GaussianNB()
-        Gauss.append(fitAndPredict(clf,train,tlabel,test,label))
         L = []
         for j in k_val:
             if j < len(train[0]):
@@ -74,29 +79,52 @@ def cross_validate(traindata, trainlabels):
         if len(L) > 0:
             knn.append(L)
         i += 1
-    line1, = plt.plot(linearSVM, label= "SVM with C=5000")
-    line2, = plt.plot(Gauss, label= "Gaussian")
-    X = np.asarray(knn)
-    line3, leg3 = [line1, line2], ["SVM with C=5000","Gaussian"]
-    for i in range(len(knn[0])):
-        line, = plt.plot(X[:,i], label = str(k_val[i])+"nn")
-        line3.append(line)
-        leg3.append(str(k_val[i])+"nn")
-    plt.legend(line3,leg3)
+    C = C_val[getBestIndex(linearSVM, C_label)]
+    k = k_val[getBestIndex(knn, k_label)]
+    CVplot(linearSVM,C_label)
+    CVplot(knn,k_label)
+    return C, k
+
+
+def getBestIndex(data, val):
+    X = np.asarray(data)
+    maximum, index = 0, 0
+    for i in range(len(data[0])):
+        temp = sum(X[:,i])/len(X[:,i])
+        print "Average Accuracy Score for:", val[i], "is:", temp
+        if temp > maximum:
+            maximum = temp
+            index = i
+    return index
+
+
+def CVplot(data, val):
+    X = np.asarray(data)
+    line, leg = [], []
+    for i in range(len(data[0])):
+        line1, = plt.plot(X[:,i], label = val[i])
+        line.append(line1)
+        leg.append(val[i])
+    plt.legend(line,leg)
     plt.show()
+
 
 def fitAndPredict(clf, traindata, trainlabels, testdata, testlabels):
     clf.fit(traindata, trainlabels)
-    i , correct = 0, 0
+    mylabel =[]
     for x in testdata:
-        if testlabels[i] == clf.predict(x):
-            correct += 1
-        i += 1
-    return float(correct)/float(len(testlabels))
+        mylabel.append(clf.predict(x))
+    #print "Accuracy:", accuracy_score(testlabels, mylabel)
+    #print "(Precision, Recall, F1-Score) Label S:", precision_recall_fscore_support(testlabels, mylabel,labels=['S','P'], pos_label='P',average='binary')
+    #print "(Precision, Recall, F1-Score) Label P:", precision_recall_fscore_support(testlabels, mylabel,labels=['S','P'], pos_label='S',average='binary')
+    #print "----------------------"
+    return accuracy_score(testlabels, mylabel)
+
 
 def shuffle(data, labels):
     start = len(data) - (6*len(data)/10)
     end = len(data) - (5*len(data)/10)
+    print start, end
     x = [i for i in range(len(data))]
     random.shuffle(x)
     traindata = [data[i] for i in x[:start]]
@@ -107,29 +135,31 @@ def shuffle(data, labels):
     testlabels = [labels[i] for i in x[start:end]]
     return (traindata,trainlabels,testdata,testlabels)
 
-def trainAndtest(traindata, trainlabels, testdata, testlabels):
-    clf = svm.SVC(C=5000,kernel="linear")
-    linearSVM = fitAndPredict(clf, traindata, trainlabels,testdata, testlabels)
-    Gauss = GaussianNB()
-    Gaussian = fitAndPredict(Gauss, traindata, trainlabels,testdata, testlabels)
-    neigh = KNeighborsClassifier(n_neighbors=7)
-    knn = fitAndPredict(neigh, traindata, trainlabels,testdata, testlabels)
+
+def trainAndtest(traindata, trainlabels, testdata, testlabels, C_val, k_val):
     print "Test accuracies:"
-    print "SVM:", linearSVM
-    print "GNB:", Gaussian
-    print "KNN:", knn
+    clf = svm.LinearSVC(C=C_val)
+    print "SVM Scores:"
+    print fitAndPredict(clf, traindata, trainlabels,testdata, testlabels)
+    Gauss = GaussianNB()
+    print "GNB: Scores"
+    print fitAndPredict(Gauss, traindata, trainlabels,testdata, testlabels)
+    print "Nearest Neighbour Scores"
+    neigh = KNeighborsClassifier(n_neighbors=k_val)
+    print fitAndPredict(neigh, traindata, trainlabels,testdata, testlabels)
 
 
 def getClassConditionalData(data, labels):
     dataP, dataS = [], []
     for i in range(len(data)):
         if labels[i] == 'P':
-            dataP.append(data[i])#[j] for j in range(len(data[i]))])
+            dataP.append(data[i])
         if labels[i] == 'S':
-            dataS.append(data[i])#[j] for j in range(len(data[i]))])
+            dataS.append(data[i])
     dataP = np.transpose(dataP)
     dataS = np.transpose(dataS)
     return dataP, dataS
+
 
 def getClassProbability(labels):
     s, p = 0, 0
@@ -142,6 +172,7 @@ def getClassProbability(labels):
     Ps = float(s)/float(len(labels))
     return Pp, Ps
 
+
 def getParam(data):
     Params = []
     for x in data:
@@ -149,6 +180,7 @@ def getParam(data):
         Sigma = np.var(x)
         Params.append((Mu, Sigma))
     return Params
+
 
 def CVsplit(traindata, trainlabels, i=5):
     n = 16
@@ -171,64 +203,79 @@ def CVsplit(traindata, trainlabels, i=5):
     return train,tlabel,test,label
 
 
-def learnStructure(dataP, dataS, Pp, Ps, R = 0.005):
+def learnStructure(dataP, dataS, Pp, Ps, TAN= True):
     tempMatrix = [[0 for i in range(len(dataP))] for j in range(len(dataP))]
     for i in range(len(dataP)):
         for j in range(i+1, len(dataP)):
-            try:
-                temp = Pp * math.log(1-((np.corrcoef(dataP[i], dataP[j])[0][1] - R)**2))
-                temp += Ps * math.log(1-((np.corrcoef(dataS[i], dataS[j])[0][1] - R)**2))
-                temp *= (0.5)
-                tempMatrix[i][j] = temp
-            except ValueError:
-                print "DATA1:", dataP[i]
-                print "DATA2:", dataP[j]
-                print "Correlation coefficient:", np.corrcoef(dataP[i], dataP[j])[0][1]
-    #print tempMatrix
-    G = nx.from_scipy_sparse_matrix(minimum_spanning_tree(csr_matrix(tempMatrix)))
+            temp = 0.0
+            if np.corrcoef(dataP[i], dataP[j])[0][1] != 1.0:
+                temp += Pp * math.log(1-((np.corrcoef(dataP[i], dataP[j])[0][1])**2))
+            if np.corrcoef(dataS[i], dataS[j])[0][1] != 1.0:
+                temp += Ps * math.log(1-((np.corrcoef(dataS[i], dataS[j])[0][1])**2))
+            temp *= (0.5)
+            tempMatrix[i][j] = temp
+            #tempMatrix[j][i] = temp
     MaxG = nx.DiGraph()
-    adjList = G.adjacency_list()
-    notReturnable = {}
-    i = 0
-    MaxG = getDirectedTree(adjList, notReturnable, MaxG, i)
-    #nx.draw_random(MaxG)
-    #plt.show()
+    if TAN:
+        G = nx.from_scipy_sparse_matrix(minimum_spanning_tree(csr_matrix(tempMatrix)))
+        adjList = G.adj
+        i = 0
+        notReturnable = {}
+        MaxG = getDirectedTree(adjList, notReturnable, MaxG, i)
+    else:
+        G = nx.Graph(np.asmatrix(tempMatrix))
+        adjList = sorted([(u,v,d['weight']) for (u,v,d) in G.edges(data=True)], key=lambda x:x[2])
+        i = 2
+        MaxG = getDirectedGraph(adjList, MaxG, i)
     return MaxG
+
+
+def getDirectedGraph(adjList, MaxG, k):
+    finished = {}
+    for (u,v,d) in adjList:
+        if v not in finished:
+            finished[v] = 1
+            MaxG.add_edge(u,v)
+        else:
+            if finished[v] < k:
+                finished[v] += 1
+                MaxG.add_edge(u,v)
+        #if not nx.is_directed_acyclic_graph(MaxG):
+        #    MaxG.remove_edge(u,v)
+    return MaxG
+
 
 def getDirectedTree(adjList, notReturnable, MaxG, i):
     x = adjList[i]
+    notReturnable[i] = 1
     L = []
-    for y in x:
+    for y in x.keys():
         if y not in notReturnable:
-            notReturnable[y] = {}
-        if i not in notReturnable:
-            notReturnable[i] = {}
-        if i not in notReturnable[y] and y not in notReturnable[i]:
             MaxG.add_edge(i, y)
             L.append(y)
-            notReturnable[y][i] = 1
-            notReturnable[i][y] = 1
     for y in L:
         MaxG = getDirectedTree(adjList,notReturnable,MaxG, y)
     return MaxG
 
-def infer(Tree, data, testdata):
+
+def getVariables(Tree, data, R = 0.0000001):
     Param = getParam(data)
     # Do topological sort to figure out nodes with least number of dependence
     Nodes = nx.topological_sort(Tree)
-    Prod = 10.0**len(Nodes)
+    Variables = {'TOPO': Nodes}
     for i in Nodes:
         mean, Var = Param[i]
-        Sum = 0
+        Mean = {'NodeMean': Param[i][0], 'Beta':[], 'ParentMean':[], 'Parent':[]}
         L = []
         for x in Tree.predecessors(i):
             if x != i:
-                Parentmean, ParentVar = Param[x]
+                #Parentmean, ParentVar = Param[x]
                 PCov = np.cov([data[i], data[x]])[0][1]
-                PBeta = PCov/ParentVar
-                Sum += PBeta * (testdata[x] - Parentmean)
+                PBeta = PCov/Param[x][1]
+                Mean['Beta'].append(PBeta)
+                Mean['ParentMean'].append(Param[x][0])
+                Mean['Parent'].append(x)
                 L.append(x)
-        mean += Sum
         if len(L) > 0:
             Depend = [data[i]]
             num, dem = 0, 0
@@ -236,83 +283,118 @@ def infer(Tree, data, testdata):
                 Depend = np.vstack((Depend, data[k]))
             Parent = Depend[1:]
             if len(Parent) > 2:
-                num = np.linalg.det(np.cov(Depend))
-                dem = np.linalg.det(np.cov(Parent))
-                #print "1 COV:" ,num, dem
+                num = np.linalg.det(np.cov(Depend)) + R
+                dem = np.linalg.det(np.cov(Parent)) + R
             if len(Parent) == 2:
-                num = np.linalg.det(np.cov(Depend))
-                dem = np.linalg.det(np.cov(Parent)) + 0.0000001
-                #print "2 COV:", num, dem
+                num = np.linalg.det(np.cov(Depend)) + R
+                dem = np.linalg.det(np.cov(Parent)) + R
             if len(Parent) == 1:
-                num = np.linalg.det(np.cov(Depend)) + 0.0000001
-                dem = np.var(Parent)
-                #print "3 COV:", num, dem
+                num = np.linalg.det(np.cov(Depend)) + R
+                dem = np.var(Parent) + R
             Var = num / dem
         Std = math.sqrt(Var)
-        rv = norm(loc=mean, scale=Std)
-        if rv.pdf(testdata[i]) > 0.0000001:
-            Prod *= rv.pdf(testdata[i])
+        Variables[i] = (Mean, Std)
+    return Variables
+
+
+def infer(Variables, testdata):
+    Prod = 1.0
+    for i in Variables['TOPO']:
+        mean = Variables[i][0]['NodeMean']
+        for j in range(len(Variables[i][0]['Beta'])):
+             mean += Variables[i][0]['Beta'][j] * (testdata[Variables[i][0]['Parent'][j]] - Variables[i][0]['ParentMean'][j])
+        rv = norm(loc=mean, scale=Variables[i][1])
+        pr = rv.pdf(testdata[i])
+        if pr > 0.0001:
+            Prod *= (pr/0.1)
     return Prod
 
 
-def cv_TAN(traindata, trainlabels, R=0.005):
+def cv_TAN(traindata, trainlabels):
     n = 16
     i = 0
-    Accuracy = []
+    TAN, KDTAN = [], []
+    R = [0.01, 1, 10]
+    R_label = ['regular=0.01', 'regular=1', 'regular=0.10']#, 'regular=4000']
     while i < n:
+        L1, L2 = [], []
         train, tlabel, test, label = CVsplit(traindata, trainlabels, i)
         dataP, dataS = getClassConditionalData(train, tlabel)
         Pp, Ps = getClassProbability(tlabel)
-        Tree = learnStructure(dataP, dataS, Pp, Ps, R)
-        mylabel = []
-        for x in test:
-            PProd = Pp * infer(Tree, dataP, x)
-            SProd = Ps * infer(Tree, dataS, x)
-            temp = PProd + SProd
-            PProd = PProd/temp
-            SProd = SProd/temp
-            if SProd >= PProd:
-                mylabel.append('S')
-            else:
-                mylabel.append('P')
-        Accuracy.append(accuracy_score(label, mylabel))
-        #print "Accuracy:", float(correct)/float(len(label))
-        #print "Accuracy: attempt",i, ": ", accuracy_score(label, mylabel)
-        #print "(Precision, Recall, F1-Score)", precision_recall_fscore_support(label, mylabel)
+        Tree1 = learnStructure(dataP, dataS, Pp, Ps, True)
+        PVariable1 = [getVariables(Tree1,dataP, r) for r in R]
+        SVariable1 = [getVariables(Tree1,dataS, r) for r in R]
+        Tree2 = learnStructure(dataP, dataS, Pp, Ps, False)
+        PVariable2 = [getVariables(Tree2,dataP, r) for r in R]
+        SVariable2 = [getVariables(Tree2,dataS, r) for r in R]
+        for j in range(len(R)):
+            mylabel1, mylabel2 = [], []
+            for x in test:
+                PProd = Pp * infer(PVariable1[j], x)
+                SProd = Ps * infer(SVariable1[j], x)
+                temp = PProd + SProd
+                PProd = PProd/temp
+                SProd = SProd/temp
+                if SProd >= PProd:
+                    mylabel1.append('S')
+                else:
+                    mylabel1.append('P')
+                PProd = Pp * infer(PVariable2[j], x)
+                SProd = Ps * infer(SVariable2[j], x)
+                temp = PProd + SProd
+                PProd = PProd/temp
+                SProd = SProd/temp
+                if SProd >= PProd:
+                    mylabel2.append('S')
+                else:
+                    mylabel2.append('P')
+            L1.append(accuracy_score(label, mylabel1))
+            L2.append(accuracy_score(label, mylabel2))
+        TAN.append(L1)
+        KDTAN.append(L2)
         i += 1
-    return sum(Accuracy)/len(Accuracy)
-
+    T = R[getBestIndex(TAN, R_label)]
+    K = R[getBestIndex(KDTAN, R_label)]
+    CVplot(TAN,R_label)
+    CVplot(KDTAN,R_label)
+    return T,K
 
 if __name__ == "__main__":
     data, labels = loadData("avgROI.mat")
     TANAcc, GaussAcc = [], []
-    for y in range(20):
-        traindata, trainlabels, testdata, testlabels = shuffle(data, labels)#CVsplit(data, labels)
-        #temp = cv_TAN(traindata,trainlabels)
-        #print "CV", temp
-        dataP, dataS = getClassConditionalData(traindata, trainlabels)
-        Pp, Ps = getClassProbability(trainlabels)
-        Tree = learnStructure(dataP, dataS, Pp, Ps)
-        mylabel = []
-        for x in testdata:
-            PProd = Pp * infer(Tree, dataP, x)
-            SProd = Ps * infer(Tree, dataS, x)
-            temp = PProd + SProd
-            PProd = PProd/temp
-            SProd = SProd/temp
-            if SProd >= PProd:
-                mylabel.append('S')
-            else:
-                mylabel.append('P')
-        TANAcc.append(accuracy_score(testlabels,mylabel))
-        #print "Accuracy:", accuracy_score(testlabels, mylabel)
-        #print "(Precision, Recall, F1-Score)", precision_recall_fscore_support(testlabels,mylabel)
-        Gauss = GaussianNB()
-        #print "Gaussian:", fitAndPredict(Gauss, traindata, trainlabels,testdata, testlabels)
-        GaussAcc.append(fitAndPredict(Gauss, traindata, trainlabels, testdata, testlabels))
-    print "TAN:", sum(TANAcc)/len(TANAcc)
-    print "GAUSS:", sum(GaussAcc)/len(GaussAcc)
-    #cross_validate(traindata,trainlabels)
-    #clf, Gauss, neigh = cross_validate(traindata,trainlabels)
-    #trainAndtest(traindata, trainlabels, testdata,testlabels)"""
-
+    traindata, trainlabels, testdata, testlabels = shuffle(data, labels)
+    C, k = cross_validate(traindata,trainlabels)
+    T, K = cv_TAN(traindata,trainlabels)
+    trainAndtest(traindata, trainlabels, testdata,testlabels, C, k)
+    dataP, dataS = getClassConditionalData(traindata, trainlabels)
+    Pp, Ps = getClassProbability(trainlabels)
+    Tree = learnStructure(dataP, dataS, Pp, Ps, TAN=True)
+    PVar = getVariables(Tree, dataP, R = T)
+    SVar = getVariables(Tree, dataS, R = T)
+    mylabel = []
+    for x in testdata:
+        PProd = Pp * infer(PVar, x)
+        SProd = Ps * infer(SVar, x)
+        temp = PProd + SProd
+        PProd = PProd/temp
+        SProd = SProd/temp
+        if SProd >= PProd:
+            mylabel.append('S')
+        else:
+            mylabel.append('P')
+    print "TAN Accuracy:", accuracy_score(testlabels, mylabel)
+    Tree = learnStructure(dataP, dataS, Pp, Ps, TAN=False)
+    PVar = getVariables(Tree, dataP, R = K)
+    SVar = getVariables(Tree, dataS, R = K)
+    mylabel = []
+    for x in testdata:
+        PProd = Pp * infer(PVar, x)
+        SProd = Ps * infer(SVar, x)
+        temp = PProd + SProd
+        PProd = PProd/temp
+        SProd = SProd/temp
+        if SProd >= PProd:
+            mylabel.append('S')
+        else:
+            mylabel.append('P')
+    print "KDTAN Accuracy:", accuracy_score(testlabels, mylabel)
